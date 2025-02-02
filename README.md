@@ -8,7 +8,7 @@ https://github.com/ultralytics/yolov5/tree/master/classify
 The "codes" folder includes the following files:
 1) VGG19_PyTorch.py: This file contains the VGG19 model.
 
-2) YOLOv5_PyTorch.py: This file contains the YOLOv5 model.
+2) yolotrain.py: This file contains the YOLOv5 model.
 for this code, we saved the file 102flowers.tgz in ex4 folder, but we couldn't upload it here.
 
 
