@@ -21,7 +21,7 @@ if not os.path.exists(extract_path):
     print("Extracting dataset...")
     with tarfile.open(dataset_path, "r:gz") as tar:
         tar.extractall(path=extract_path)
-    print("✅ Dataset extracted successfully!")
+    print(" Dataset extracted successfully!")
 
 # ===========================
 # STEP 2: Data Preprocessing and Splitting
@@ -43,14 +43,17 @@ output_dirs = {
     "test": os.path.join(base_dir, "test")
 }
 
-# Function to reset directories (ensure new random split every run)
+
+# Function to reset directories (ensuring a fresh split every run)
 def reset_dirs():
     for key in output_dirs:
         shutil.rmtree(output_dirs[key], ignore_errors=True)  # Delete old directories
         os.makedirs(output_dirs[key], exist_ok=True)
 
+
 # Get all images
 image_files = sorted(os.listdir(image_dir))  # Ensure order matches labels
+
 
 # Function to split and copy images
 def split_and_copy(seed):
@@ -79,7 +82,8 @@ def split_and_copy(seed):
     copy_files(train_indices, "train")
     copy_files(val_indices, "val")
     copy_files(test_indices, "test")
-    print(f"✅ Data split complete for seed {seed}!")
+    print(f"Data split complete for seed {seed}!")
+
 
 # Perform new random splits every time the script runs
 reset_dirs()
@@ -104,6 +108,7 @@ transform = transforms.Compose([
     transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
 ])
 
+
 # Function to load data
 def load_data():
     train_dataset = ImageFolder(root=output_dirs["train"], transform=transform)
@@ -116,6 +121,7 @@ def load_data():
 
     return train_loader, val_loader, test_loader
 
+
 # Load YOLOv5 model
 def load_yolo():
     model = torch.hub.load('ultralytics/yolov5', 'custom', path='yolov5s-cls.pt', force_reload=True)
@@ -123,8 +129,9 @@ def load_yolo():
     model.model[-1].linear = nn.Linear(model.model[-1].linear.in_features, 102)  # Adjust output layer for 102 classes
     return model.to(device)
 
+
 # Training function
-def train_model(model, train_loader, val_loader, test_loader, num_epochs=20):
+def train_model(model, train_loader, val_loader, test_loader, num_epochs=8):
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=0.0001)
 
@@ -182,21 +189,40 @@ def train_model(model, train_loader, val_loader, test_loader, num_epochs=20):
         test_losses.append(test_loss / len(test_loader))
         test_accuracies.append(100 * correct_test / total_test)
 
-        print(f"Epoch [{epoch+1}/{num_epochs}], Train Acc: {train_accuracies[-1]:.2f}%, "
+        print(f"Epoch [{epoch + 1}/{num_epochs}], Train Acc: {train_accuracies[-1]:.2f}%, "
               f"Val Acc: {val_accuracies[-1]:.2f}%, Test Acc: {test_accuracies[-1]:.2f}%")
 
+    print(f" Final Test Accuracy: {test_accuracies[-1]:.2f}%\n")
     return train_losses, val_losses, test_losses, train_accuracies, val_accuracies, test_accuracies
+
 
 # Train and plot results for two splits
 for i in range(2):
     train_loader, val_loader, test_loader = load_data()
     model = load_yolo()
     results = train_model(model, train_loader, val_loader, test_loader)
-    plt.figure()
-    plt.plot(results[3], label="Train Acc")
-    plt.plot(results[4], label="Val Acc")
-    plt.plot(results[5], label="Test Acc")
+
+       plt.figure(figsize=(12, 5))
+
+    # Accuracy Plot
+    plt.subplot(1, 2, 1)
+    plt.plot(results[3], label="Train Acc", marker="o")
+    plt.plot(results[4], label="Val Acc", marker="o")
+    plt.plot(results[5], label="Test Acc", marker="o")
+    plt.xlabel("Epochs")
+    plt.ylabel("Accuracy (%)")
     plt.legend()
-    plt.title(f"Training Results Split {i+1}")
-    plt.savefig(f"training_results_split_{i+1}.png")
+    plt.title(f"Accuracy Over Epochs - Split {i + 1}")
+
+    # Loss Plot
+    plt.subplot(1, 2, 2)
+    plt.plot(results[0], label="Train Loss", marker="o")
+    plt.plot(results[1], label="Val Loss", marker="o")
+    plt.plot(results[2], label="Test Loss", marker="o")
+    plt.xlabel("Epochs")
+    plt.ylabel("Loss")
+    plt.legend()
+    plt.title(f"Loss Over Epochs - Split {i + 1}")
+
+    plt.savefig(f"training_results_split_{i + 1}.png")
     plt.show()
